@@ -31,23 +31,6 @@ class Terminal {
             useGlassmorphism: config.useGlassmorphism !== undefined ? config.useGlassmorphism : true // Включен ли эффект стекломорфизма
         };
         
-        // Состояние терминала
-        this.state = {
-            active: true,
-            visible: true,
-            userInput: '',
-            historyIndex: -1,
-            commandHistory: [],
-            animating: false,
-            lines: []
-        };
-        
-        // Очередь вывода
-        this.outputQueue = [];
-        
-        // Зарегистрированные команды
-        this.registeredCommands = {};
-        
         // Контейнер для всех элементов терминала
         this.container = scene.add.container(this.config.x, this.config.y);
         this.container.setDepth(this.config.depth);
@@ -166,7 +149,7 @@ class Terminal {
             -this.config.padding + 10, 
             -this.config.padding + 10, 
             this.config.width - 20, 
-            this.config.height - 100, // Уменьшаем отступ снизу для контента
+            this.config.height - 120, // Увеличиваем высоту содержимого
             0x001005, 0.5
         );
         this.contentBg.setOrigin(0);
@@ -184,7 +167,7 @@ class Terminal {
         this.contentContainer.add(this.outputText);
         
         // Контейнер для строки ввода
-        this.inputContainer = scene.add.container(this.config.padding, this.config.height - this.config.padding - 35); // Немного уменьшаем отступ
+        this.inputContainer = scene.add.container(this.config.padding, this.config.height - this.config.padding - 40); // Увеличиваем отступ с 30 до 40
         this.container.add(this.inputContainer);
         
         // Фон для строки ввода (для лучшего контраста)
@@ -260,6 +243,15 @@ class Terminal {
         // История команд
         this.commandHistory = [];
         this.historyIndex = -1;
+        
+        // Состояние терминала
+        this.state = {
+            active: true,  // Активен ли терминал для ввода
+            animating: false,  // Находится ли в процессе анимации вывода
+            lines: [],  // Строки вывода
+            history: [],  // История команд
+            commands: {}  // Словарь зарегистрированных команд
+        };
         
         // Обработка ввода с клавиатуры
         scene.input.keyboard.on('keydown', this.handleKeyInput, this);
@@ -396,22 +388,13 @@ class Terminal {
     }
     
     /**
-     * Вывод текста в терминал с эффектом печатающейся машинки
-     * @param {string|array} text - Текст для вывода или массив строк
+     * Написать текст в терминал с эффектом печати
+     * @param {string|string[]} text - Текст или массив строк для вывода
      * @param {object} options - Дополнительные опции (скорость, цвет и т.д.)
      */
     writeOutput(text, options = {}) {
-        // Если текст - массив, объединяем его в строку
-        if (Array.isArray(text)) {
-            // Для коротких массивов (до 10 строк) используем анимацию печати
-            if (text.length <= 10) {
-                text = text.join('\n');
-            } else {
-                // Для длинных массивов выводим сразу без анимации
-                options.instant = true;
-                text = text.join('\n');
-            }
-        }
+        // Конвертируем одиночную строку в массив
+        const lines = Array.isArray(text) ? text : [text];
         
         // Настройки вывода
         const outputOptions = {
@@ -421,87 +404,105 @@ class Terminal {
             callback: options.callback || null
         };
         
-        // Если уже идет анимация и не просят мгновенный вывод, добавляем в очередь
+        // Если уже идет анимация, добавляем новые строки в очередь
         if (this.state.animating && !outputOptions.instant) {
-            this.outputQueue.push({
-                text: text,
+            this.state.lines = this.state.lines.concat(lines.map(line => ({
+                text: line,
                 options: outputOptions
-            });
+            })));
             return;
         }
         
         // Устанавливаем флаг анимации
         this.state.animating = !outputOptions.instant;
         
-        // Если нужен мгновенный вывод (без эффекта печати)
+        // Если нужно вывести мгновенно
         if (outputOptions.instant) {
-            // Добавляем текст к существующему
-            const newText = this.outputText.text ? this.outputText.text + '\n' + text : text;
+            // Добавляем все строки сразу
+            const currentText = this.outputText.text;
+            const newText = currentText + (currentText ? '\n' : '') + lines.join('\n');
             this.outputText.setText(newText);
             this.outputText.setColor(outputOptions.color);
             
-            // Прокручиваем до конца
+            // Прокрутка вниз при необходимости
             this.scrollOutputToBottom();
             
-            // Вызываем callback, если он передан
+            // Вызываем callback, если он есть
             if (outputOptions.callback) {
                 outputOptions.callback();
             }
-            
-            // Продолжаем очередь, если она есть
-            this.processOutputQueue();
             return;
         }
         
-        // Добавляем перенос строки перед новым текстом, если уже есть текст
-        const prefix = this.outputText.text ? '\n' : '';
-        
-        // Запускаем анимацию печатающейся машинки с текстом постепенно
-        let currentIndex = 0;
-        let fullText = prefix + text;
-        
-        // Функция для добавления одного символа за раз
+        // Анимированный вывод текста
+        let currentLine = 0;
+        let lineCharIndex = 0;
+        const originalText = this.outputText.text;
         const addCharacter = () => {
-            currentIndex++;
-            
-            // Обновляем текст, добавляя новый символ
-            this.outputText.setText(this.outputText.text + fullText.charAt(currentIndex - 1));
-            
-            // Прокручиваем вниз по мере добавления символов
-            this.scrollOutputToBottom();
-            
-            // Если есть еще символы, продолжаем анимацию
-            if (currentIndex < fullText.length) {
-                // Задержка перед следующим символом
-                this.scene.time.delayedCall(outputOptions.speed, addCharacter);
-            } else {
-                // Анимация завершена
-                this.state.animating = false;
+            if (currentLine < lines.length) {
+                // Текущая строка
+                const line = lines[currentLine];
                 
-                // Вызываем callback, если он передан
-                if (outputOptions.callback) {
-                    outputOptions.callback();
+                // Добавляем символ
+                if (lineCharIndex === 0) {
+                    // Начало новой строки
+                    this.outputText.setText(
+                        this.outputText.text + 
+                        (this.outputText.text ? '\n' : '') + 
+                        line.charAt(0)
+                    );
+                    lineCharIndex = 1;
+                } else if (lineCharIndex < line.length) {
+                    // Добавление символа к текущей строке
+                    this.outputText.setText(
+                        this.outputText.text + line.charAt(lineCharIndex)
+                    );
+                    lineCharIndex++;
+                } else {
+                    // Конец строки
+                    currentLine++;
+                    lineCharIndex = 0;
                 }
                 
-                // Проверяем, есть ли еще вывод в очереди
-                this.processOutputQueue();
+                // Прокрутка вниз при необходимости
+                this.scrollOutputToBottom();
+                
+                // Продолжаем анимацию
+                if (currentLine < lines.length || lineCharIndex < (lines[currentLine] ? lines[currentLine].length : 0)) {
+                    this.scene.time.delayedCall(outputOptions.speed, addCharacter);
+                } else {
+                    // Анимация завершена
+                    this.state.animating = false;
+                    
+                    // Вызываем callback, если он есть
+                    if (outputOptions.callback) {
+                        outputOptions.callback();
+                    }
+                    
+                    // Проверяем, есть ли еще строки в очереди
+                    if (this.state.lines.length > 0) {
+                        const nextOutput = this.state.lines.shift();
+                        this.writeOutput(nextOutput.text, nextOutput.options);
+                    }
+                }
             }
         };
         
-        // Запускаем анимацию с первого символа
+        // Запускаем анимацию
         addCharacter();
     }
     
     /**
      * Прокрутка текста вывода до конца
-     * Улучшенная версия с контролем высоты контейнера
+     * Улучшенная версия с контролем высоты контейнера и поддержкой пользовательской прокрутки
      */
     scrollOutputToBottom() {
         // Получаем текущие строки
         const lines = this.outputText.text.split('\n');
         
         // Определяем максимальную высоту области вывода с учетом нового размера шрифта
-        const maxHeight = this.config.height - this.config.padding * 3 - this.headerText.height - this.inputText.height - 40; // Добавляем дополнительный отступ
+        // Увеличиваем отступ снизу, чтобы текст не наезжал на строку ввода
+        const maxHeight = this.config.height - this.config.padding * 3 - this.headerText.height - this.inputContainer.height - 60;
         
         // Определяем приблизительную высоту текста
         const lineHeight = this.config.fontSize * this.config.lineHeight; // Учитываем межстрочное расстояние
@@ -524,6 +525,14 @@ class Terminal {
         // Устанавливаем правильную позицию Y для текста вывода
         const outputY = this.config.padding + this.headerText.height + 10;
         this.outputText.setY(outputY);
+        
+        // Сбрасываем позицию прокрутки на нижний край
+        this.contentScrollPosition = 0;
+        
+        // Вызываем updateScrollPosition только если метод существует и это функция
+        if (typeof this.updateScrollPosition === 'function') {
+            this.updateScrollPosition();
+        }
     }
     
     /**
@@ -628,15 +637,5 @@ class Terminal {
         }
         
         this.container.destroy();
-    }
-    
-    /**
-     * Обрабатывает очередь вывода
-     */
-    processOutputQueue() {
-        if (this.outputQueue && this.outputQueue.length > 0) {
-            const nextOutput = this.outputQueue.shift();
-            this.writeOutput(nextOutput.text, nextOutput.options);
-        }
     }
 }
