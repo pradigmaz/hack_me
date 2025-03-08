@@ -98,7 +98,7 @@ class MenuScene extends Phaser.Scene {
     showWelcomeMessage() {
         const welcomeLines = [
             '================================',
-            '     ЦИФРОВОЕ ПРОНИКНОВЕНИЕ    ',
+            '           h4ck/me              ',
             '================================',
             '',
             'Добро пожаловать в симулятор хакера',
