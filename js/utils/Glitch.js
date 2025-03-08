@@ -101,17 +101,33 @@ class Glitch {
         const originalX = gameObject.x;
         const originalY = gameObject.y;
         const originalAlpha = gameObject.alpha;
-        const originalTint = gameObject.tintTopLeft;
+        
+        // Проверяем, поддерживает ли объект метод setTint
+        const supportsTint = gameObject.setTint && typeof gameObject.setTint === 'function';
+        // Сохраняем исходный оттенок только если функция поддерживается
+        const originalTint = supportsTint ? gameObject.tintTopLeft : null;
+        
         let iterations = Math.floor(settings.duration / settings.interval);
         
         // Эффект для одной итерации
         const applyGlitchStep = () => {
-            if (iterations <= 0) {
-                // Восстанавливаем исходное состояние
-                gameObject.x = originalX;
-                gameObject.y = originalY;
-                gameObject.alpha = originalAlpha;
-                gameObject.tint = originalTint;
+            if (iterations <= 0 || !gameObject || !gameObject.scene) {
+                // Проверяем, что объект все еще существует
+                if (gameObject && gameObject.scene) {
+                    // Восстанавливаем исходное состояние
+                    gameObject.x = originalX;
+                    gameObject.y = originalY;
+                    gameObject.alpha = originalAlpha;
+                    
+                    // Восстанавливаем оттенок только если функция поддерживается
+                    if (supportsTint && originalTint !== null) {
+                        try {
+                            gameObject.setTint(originalTint);
+                        } catch (e) {
+                            console.warn("Не удалось восстановить исходный оттенок:", e);
+                        }
+                    }
+                }
                 return;
             }
             
@@ -125,12 +141,16 @@ class Glitch {
             gameObject.y = originalY + offsetY;
             gameObject.alpha = originalAlpha - alphaChange;
             
-            // С некоторой вероятностью меняем оттенок
-            if (Math.random() < 0.3) {
-                const r = Math.floor(Math.random() * 255);
-                const g = Math.floor(Math.random() * 255);
-                const b = Math.floor(Math.random() * 255);
-                gameObject.setTint(Phaser.Display.Color.GetColor(r, g, b));
+            // С некоторой вероятностью меняем оттенок, если объект поддерживает эту функцию
+            if (Math.random() < 0.3 && supportsTint) {
+                try {
+                    const r = Math.floor(Math.random() * 255);
+                    const g = Math.floor(Math.random() * 255);
+                    const b = Math.floor(Math.random() * 255);
+                    gameObject.setTint(Phaser.Display.Color.GetColor(r, g, b));
+                } catch (e) {
+                    console.warn("Не удалось применить оттенок:", e);
+                }
             }
             
             iterations--;

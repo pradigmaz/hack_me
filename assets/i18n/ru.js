@@ -20,7 +20,7 @@ const ru = {
     
     // Интерфейс меню
     menu: {
-        title: "Цифровое проникновение",
+        title: "h4ck/me",
         subtitle: "Симулятор хакера",
         newGame: "Новая игра",
         continue: "Продолжить",

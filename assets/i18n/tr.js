@@ -20,7 +20,7 @@ const tr = {
     
     // Menu interface
     menu: {
-        title: "Dijital Sızma",
+        title: "h4ck/me",
         subtitle: "Hacker Simülatörü",
         newGame: "Yeni Oyun",
         continue: "Devam Et",

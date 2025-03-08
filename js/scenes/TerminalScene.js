@@ -466,7 +466,7 @@ class TerminalScene extends Phaser.Scene {
                 
             case '/home/user/documents/mission_briefing.txt':
                 fileContent = [
-                    'МИССИЯ: "ЦИФРОВОЕ ПРОНИКНОВЕНИЕ"',
+                    'МИССИЯ: "h4ck/me"',
                     '',
                     'Цель: Получить доступ к защищенным данным корпорации "КиберТек"',
                     '',

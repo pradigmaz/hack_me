@@ -20,7 +20,7 @@ const en = {
     
     // Menu interface
     menu: {
-        title: "Digital Intrusion",
+        title: "h4ck/me",
         subtitle: "Hacker Simulator",
         newGame: "New Game",
         continue: "Continue",
