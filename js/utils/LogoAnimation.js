@@ -1,6 +1,6 @@
 /**
  * AdvancedLogoAnimation - класс для создания продвинутой 3D-подобной анимации логотипа 
- * с эффектами цифрового проявления, матричного дождя и глитча
+ * с эффектами цифрового проявления и глитча
  */
 class LogoAnimation {
     /**
@@ -16,7 +16,7 @@ class LogoAnimation {
             x: config.x || scene.cameras.main.width / 2,
             y: config.y || scene.cameras.main.height / 2,
             text: config.text || 'h4ck/me',
-            fontSize: config.fontSize || 36,
+            fontSize: config.fontSize || 48, // Увеличили размер с 36 до 48
             fontFamily: config.fontFamily || 'monospace',
             color: config.color || '#00FF41',
             glowColor: config.glowColor || 0x00FF41,
@@ -25,10 +25,15 @@ class LogoAnimation {
             symbolSpeed: config.symbolSpeed || 50,
             onComplete: config.onComplete || null,
             depth: config.depth || 10,
-            layers: config.layers || 8, // Количество слоев для 3D-эффекта
-            layerOffset: config.layerOffset || 1.5, // Базовое смещение между слоями
-            rotationAmplitude: config.rotationAmplitude || 0.05, // Амплитуда вращения логотипа
-            particlesCount: config.particlesCount || 50 // Количество матричных частиц
+            layers: config.layers || 10, // Увеличили количество слоев с 8 до 10
+            layerOffset: config.layerOffset || 2, // Увеличили смещение с 1.5 до 2
+            rotationAmplitude: config.rotationAmplitude || 0.05,
+            // Настройки для глитч-эффекта
+            glitchInterval: config.glitchInterval || { min: 2000, max: 5000 },
+            glitchDuration: config.glitchDuration || { min: 100, max: 400 },
+            glitchIntensity: config.glitchIntensity || { min: 0.3, max: 0.8 },
+            // Отключаем матричные частицы
+            particlesCount: 0
         };
         
         // Создаем основной контейнер для логотипа
@@ -43,18 +48,18 @@ class LogoAnimation {
         this.layersContainer = scene.add.container(0, 0);
         this.container.add(this.layersContainer);
         
-        // Контейнер для частиц и эффектов
+        // Контейнер для эффектов
         this.effectsContainer = scene.add.container(0, 0);
         this.container.add(this.effectsContainer);
         
         // Состояние анимации
         this.animationCompleted = false;
         this.currentChar = 0;
+        this.isGlitching = false;
         
         // Массивы для отслеживания объектов
         this.textLayers = []; // Слои для 3D-эффекта
         this.textChars = []; // Отдельные символы логотипа
-        this.particles = []; // Матричные частицы
         
         // Получаем генератор символов
         this.textGenerator = this.scene.game.globals?.textGenerator || {
@@ -77,9 +82,6 @@ class LogoAnimation {
         
         // Создаем 3D-слои логотипа
         this.create3DLayers();
-        
-        // Создаем матричные частицы
-        this.createMatrixParticles();
         
         // Начально скрываем слои (для последующей анимации появления)
         this.textLayers.forEach(layer => {
@@ -107,12 +109,12 @@ class LogoAnimation {
         this.backgroundContainer.add(bg);
         this.background = bg;
         
-        // Добавляем пульсирующее свечение
+        // Добавляем пульсирующее свечение с усиленной яркостью
         const glow = this.scene.add.rectangle(
             0, 0,
-            this.config.text.length * this.config.fontSize * 0.6 + 50,
-            this.config.fontSize * 2 + 20,
-            this.config.glowColor, 0.2
+            this.config.text.length * this.config.fontSize * 0.7 + 70, // Увеличиваем размер свечения
+            this.config.fontSize * 2.5 + 30, // Увеличиваем высоту свечения
+            this.config.glowColor, 0.25 // Усиливаем яркость с 0.2 до 0.25
         );
         glow.setOrigin(0.5);
         glow.setBlendMode(Phaser.BlendModes.ADD);
@@ -121,12 +123,12 @@ class LogoAnimation {
         this.backgroundContainer.add(glow);
         this.glow = glow;
         
-        // Анимация пульсации свечения
+        // Анимация пульсации свечения с увеличенной амплитудой
         this.scene.tweens.add({
             targets: glow,
-            scaleX: 1.05,
-            scaleY: 1.1,
-            alpha: 0.15,
+            scaleX: 1.08, // Усилено с 1.05
+            scaleY: 1.15, // Усилено с 1.1
+            alpha: 0.2,  // Усилено с 0.15
             duration: 1500,
             ease: 'Sine.easeInOut',
             yoyo: true,
@@ -148,8 +150,8 @@ class LogoAnimation {
             const alpha = i === 0 ? 1 : 0.1 + (i / this.config.layers) * 0.9;
             const scale = 1 - (0.01 * i);
             
-            // Расчет цвета слоя - от темного к яркому
-            const colorValue = Math.floor(20 + (235 * (i / this.config.layers)));
+            // Расчет цвета слоя - от темного к яркому с большей контрастностью
+            const colorValue = Math.floor(20 + (235 * Math.pow(i / this.config.layers, 1.2)));
             const layerColor = i === 0 
                 ? this.config.color 
                 : `rgb(0, ${colorValue}, ${Math.floor(colorValue * 0.6)})`;
@@ -164,7 +166,7 @@ class LogoAnimation {
                     fontSize: this.config.fontSize,
                     color: layerColor,
                     stroke: i === 0 ? '#003300' : undefined,
-                    strokeThickness: i === 0 ? 1 : 0
+                    strokeThickness: i === 0 ? 2 : 0 // Усилили обводку с 1 до 2
                 }
             );
             
@@ -173,8 +175,8 @@ class LogoAnimation {
             layer.setAlpha(alpha);
             
             if (i === 0) {
-                // Верхний слой с дополнительными эффектами
-                layer.setShadow(0, 0, '#00FF41', 5);
+                // Верхний слой с усиленными эффектами
+                layer.setShadow(0, 0, '#00FF41', 8); // Усилили свечение с 5 до 8
                 layer.depth = this.config.depth + 10;
             }
             
@@ -184,38 +186,6 @@ class LogoAnimation {
         
         // Сохраняем ссылку на верхний (главный) слой
         this.mainTextLayer = this.textLayers[0];
-    }
-    
-    /**
-     * Создание матричных частиц
-     */
-    createMatrixParticles() {
-        const textWidth = this.mainTextLayer.width;
-        const textHeight = this.mainTextLayer.height;
-        
-        for (let i = 0; i < this.config.particlesCount; i++) {
-            // Создаем случайный символ
-            const particle = this.scene.add.text(
-                Phaser.Math.Between(-textWidth/2, textWidth/2),
-                Phaser.Math.Between(-textHeight*2, textHeight/2),
-                this.textGenerator.getRandomChar(),
-                {
-                    fontFamily: this.config.fontFamily,
-                    fontSize: Phaser.Math.Between(10, 18),
-                    color: '#00FF41'
-                }
-            );
-            
-            // Устанавливаем параметры частицы
-            particle.setOrigin(0.5);
-            particle.setAlpha(0);
-            particle.speed = Phaser.Math.Between(1, 4);
-            particle.setBlendMode(Phaser.BlendModes.ADD);
-            
-            // Добавляем частицу в контейнер и массив
-            this.effectsContainer.add(particle);
-            this.particles.push(particle);
-        }
     }
     
     /**
@@ -232,14 +202,6 @@ class LogoAnimation {
                 // Начинаем анимацию появления символов
                 this.startSymbolsAnimation();
             }
-        });
-        
-        // Запускаем движение частиц
-        this.particles.forEach(particle => {
-            // Устанавливаем случайную задержку для появления
-            this.scene.time.delayedCall(Phaser.Math.Between(0, 2000), () => {
-                particle.setAlpha(Phaser.Math.FloatBetween(0.3, 0.7));
-            });
         });
     }
     
@@ -269,7 +231,7 @@ class LogoAnimation {
                 const alpha = l === 0 ? 1 : 0.1 + (l / this.config.layers) * 0.9;
                 const scale = 1 - (0.01 * l);
                 
-                const colorValue = Math.floor(20 + (235 * (l / this.config.layers)));
+                const colorValue = Math.floor(20 + (235 * Math.pow(l / this.config.layers, 1.2)));
                 const layerColor = l === 0 
                     ? this.config.color 
                     : `rgb(0, ${colorValue}, ${Math.floor(colorValue * 0.6)})`;
@@ -289,7 +251,7 @@ class LogoAnimation {
                         fontSize: this.config.fontSize,
                         color: layerColor,
                         stroke: l === 0 ? '#003300' : undefined,
-                        strokeThickness: l === 0 ? 1 : 0
+                        strokeThickness: l === 0 ? 2 : 0 // Усилили обводку
                     }
                 );
                 
@@ -303,7 +265,7 @@ class LogoAnimation {
                 
                 if (l === 0) {
                     // Верхний слой с дополнительными эффектами
-                    charText.setShadow(0, 0, '#00FF41', 5);
+                    charText.setShadow(0, 0, '#00FF41', 8); // Усилили свечение
                 }
                 
                 // Скрываем символ изначально
@@ -357,8 +319,8 @@ class LogoAnimation {
             });
         });
         
-        // Добавляем эффект глитча для случайных символов
-        if (Math.random() < 0.3) {
+        // Добавляем эффект глитча для случайных символов с большей вероятностью
+        if (Math.random() < 0.5) { // Увеличили вероятность с 0.3 до 0.5
             this.scene.time.delayedCall(200, () => {
                 if (this.scene.game.globals && this.scene.game.globals.glitch) {
                     const mainLayer = char.layers.find(l => l.layer === 0);
@@ -366,7 +328,7 @@ class LogoAnimation {
                         this.scene.game.globals.glitch.applyToPhaserObject(
                             this.scene,
                             mainLayer.container,
-                            { intensity: 0.3, duration: 200 }
+                            { intensity: 0.5, duration: 200 } // Усилили глитч с 0.3 до 0.5
                         );
                     }
                 }
@@ -416,7 +378,7 @@ class LogoAnimation {
                     // Анимация для финального символа
                     this.scene.tweens.add({
                         targets: textObj,
-                        scale: 1.1,
+                        scale: 1.2, // Увеличили эффект с 1.1 до 1.2
                         duration: 100,
                         ease: 'Power2',
                         yoyo: true
@@ -502,6 +464,9 @@ class LogoAnimation {
                     repeat: -1
                 });
                 
+                // Запускаем периодические глитч-эффекты
+                this.setupGlitchEffects();
+                
                 // Вызываем callback завершения
                 if (this.config.onComplete) {
                     this.config.onComplete();
@@ -511,16 +476,363 @@ class LogoAnimation {
     }
     
     /**
+     * Настройка периодических глитч-эффектов
+     */
+    setupGlitchEffects() {
+        const scheduleNextGlitch = () => {
+            // Случайный интервал между глитчами
+            const nextGlitchDelay = Phaser.Math.Between(
+                this.config.glitchInterval.min, 
+                this.config.glitchInterval.max
+            );
+            
+            this.scene.time.delayedCall(nextGlitchDelay, () => {
+                // Применяем глитч
+                this.applyRandomGlitch();
+                
+                // Планируем следующий глитч
+                scheduleNextGlitch();
+            });
+        };
+        
+        // Запускаем цикл глитч-эффектов
+        scheduleNextGlitch();
+    }
+    
+    /**
+     * Применение случайного глитч-эффекта
+     */
+    applyRandomGlitch() {
+        if (this.isGlitching) return;
+        this.isGlitching = true;
+        
+        // Выбираем случайный тип глитча
+        const glitchType = Phaser.Math.Between(1, 4);
+        const intensity = Phaser.Math.FloatBetween(
+            this.config.glitchIntensity.min, 
+            this.config.glitchIntensity.max
+        );
+        const duration = Phaser.Math.Between(
+            this.config.glitchDuration.min, 
+            this.config.glitchDuration.max
+        );
+        
+        switch (glitchType) {
+            case 1:
+                // Тип 1: Смещение слоев
+                this.applyLayerShiftGlitch(intensity, duration);
+                break;
+            case 2:
+                // Тип 2: Изменение цвета
+                this.applyColorGlitch(intensity, duration);
+                break;
+            case 3:
+                // Тип 3: Дрожание
+                this.applyShakeGlitch(intensity, duration);
+                break;
+            case 4:
+                // Тип 4: Искажение формы
+                this.applyDistortionGlitch(intensity, duration);
+                break;
+        }
+        
+        // Если доступен встроенный глитч-эффект из globals - используем и его
+        if (this.scene.game.globals && this.scene.game.globals.glitch) {
+            this.scene.game.globals.glitch.applyToPhaserObject(
+                this.scene,
+                this.layersContainer,
+                { intensity: intensity * 0.8, duration: duration * 0.7 }
+            );
+        }
+        
+        // Восстановление после глитча
+        this.scene.time.delayedCall(duration, () => {
+            this.resetGlitch();
+            this.isGlitching = false;
+        });
+    }
+    
+    /**
+     * Глитч типа 1: Смещение слоев
+     */
+    applyLayerShiftGlitch(intensity, duration) {
+        // Смещаем слои в разные стороны
+        this.textLayers.forEach((layer, index) => {
+            if (index > 0) { // Оставляем верхний слой неподвижным
+                const xShift = Phaser.Math.Between(-15, 15) * intensity * (index / this.config.layers);
+                const yShift = Phaser.Math.Between(-10, 10) * intensity * (index / this.config.layers);
+                
+                layer.oldX = layer.x;
+                layer.oldY = layer.y;
+                
+                this.scene.tweens.add({
+                    targets: layer,
+                    x: layer.x + xShift,
+                    y: layer.y + yShift,
+                    duration: duration * 0.2,
+                    ease: 'Stepped',
+                    onComplete: () => {
+                        // Добавляем случайные промежуточные смещения
+                        if (Math.random() < 0.7) {
+                            this.scene.tweens.add({
+                                targets: layer,
+                                x: layer.x + Phaser.Math.Between(-5, 5) * intensity,
+                                y: layer.y + Phaser.Math.Between(-5, 5) * intensity,
+                                duration: duration * 0.1,
+                                ease: 'Stepped'
+                            });
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Вероятность сдвига всего логотипа
+        if (Math.random() < 0.4) {
+            this.scene.tweens.add({
+                targets: this.layersContainer,
+                x: Phaser.Math.Between(-10, 10) * intensity,
+                y: Phaser.Math.Between(-5, 5) * intensity,
+                duration: duration * 0.3,
+                ease: 'Stepped',
+                yoyo: true,
+                repeat: 1
+            });
+        }
+    }
+    
+    /**
+     * Глитч типа 2: Изменение цвета
+     */
+    applyColorGlitch(intensity, duration) {
+        // Измененный цвет (смещаем к синему или красному)
+        const colorShift = Math.random() < 0.5 ? 
+            { r: 0, g: 255, b: 255 } : // Голубой
+            { r: 255, g: 50, b: 50 };  // Красный
+        
+        this.textLayers.forEach((layer, index) => {
+            layer.oldTint = layer.tint;
+            layer.oldAlpha = layer.alpha;
+            
+            // Увеличиваем прозрачность для некоторых слоев
+            if (Math.random() < 0.5) {
+                this.scene.tweens.add({
+                    targets: layer,
+                    alpha: layer.alpha * 1.5, // Увеличиваем яркость
+                    duration: duration * 0.2,
+                    ease: 'Stepped'
+                });
+            }
+            
+            // Меняем оттенок для верхних слоев
+            if (index < 3) {
+                layer.setTint(Phaser.Display.Color.GetColor(
+                    colorShift.r, 
+                    colorShift.g, 
+                    colorShift.b
+                ));
+            }
+        });
+        
+        // Временное изменение цвета свечения
+        const oldGlowFillColor = this.glow.fillColor;
+        this.glow.setFillStyle(
+            Phaser.Display.Color.GetColor(
+                colorShift.r, 
+                colorShift.g, 
+                colorShift.b
+            ), 
+            0.3
+        );
+        
+        // Восстановим цвет свечения после глитча
+        this.scene.time.delayedCall(duration, () => {
+            this.glow.setFillStyle(oldGlowFillColor, 0.25);
+        });
+    }
+    
+    /**
+     * Глитч типа 3: Дрожание
+     */
+    applyShakeGlitch(intensity, duration) {
+        // Количество тряски и сила
+        const shakeCount = Math.floor(duration / 50);
+        const shakeForce = 5 * intensity;
+        
+        // Начальные позиции
+        const originalX = this.layersContainer.x;
+        const originalY = this.layersContainer.y;
+        
+        // Функция одиночной тряски
+        const shake = (count) => {
+            if (count <= 0) return;
+            
+            const xShift = Phaser.Math.Between(-shakeForce, shakeForce);
+            const yShift = Phaser.Math.Between(-shakeForce, shakeForce);
+            
+            this.scene.tweens.add({
+                targets: this.layersContainer,
+                x: originalX + xShift,
+                y: originalY + yShift,
+                duration: 30,
+                ease: 'Power1',
+                onComplete: () => {
+                    // Следующая тряска
+                    shake(count - 1);
+                }
+            });
+        };
+        
+        // Запускаем тряску
+        shake(shakeCount);
+        
+        // Добавляем случайные глитчи слоев во время тряски
+        if (Math.random() < 0.7) {
+            this.textLayers.forEach((layer, index) => {
+                if (index > 0 && Math.random() < 0.5) {
+                    this.scene.tweens.add({
+                        targets: layer,
+                        alpha: layer.alpha * (Math.random() < 0.5 ? 0.5 : 1.5),
+                        x: layer.x + Phaser.Math.Between(-10, 10) * intensity,
+                        y: layer.y + Phaser.Math.Between(-10, 10) * intensity,
+                        duration: 50,
+                        ease: 'Stepped',
+                        yoyo: true,
+                        repeat: 1
+                    });
+                }
+            });
+        }
+    }
+    
+    /**
+     * Глитч типа 4: Искажение формы
+     */
+    applyDistortionGlitch(intensity, duration) {
+        // Искажаем масштаб слоев и логотипа
+        this.scene.tweens.add({
+            targets: this.layersContainer,
+            scaleX: 1 + 0.2 * intensity,
+            scaleY: 1 - 0.1 * intensity,
+            duration: duration * 0.2,
+            ease: 'Stepped',
+            yoyo: true,
+            repeat: 1
+        });
+        
+        // Искажаем отдельные слои
+        this.textLayers.forEach((layer, index) => {
+            if (Math.random() < 0.5) {
+                layer.oldScaleX = layer.scaleX;
+                layer.oldScaleY = layer.scaleY;
+                
+                this.scene.tweens.add({
+                    targets: layer,
+                    scaleX: layer.scaleX * (1 + 0.15 * intensity * Math.random()),
+                    scaleY: layer.scaleY * (1 - 0.05 * intensity * Math.random()),
+                    duration: duration * 0.3,
+                    ease: 'Stepped'
+                });
+                
+                // Добавляем поворот для некоторых слоев
+                if (Math.random() < 0.3) {
+                    layer.oldRotation = layer.rotation;
+                    
+                    this.scene.tweens.add({
+                        targets: layer,
+                        angle: Phaser.Math.Between(-5, 5) * intensity,
+                        duration: duration * 0.3,
+                        ease: 'Stepped'
+                    });
+                }
+            }
+        });
+    }
+    
+    /**
+     * Сброс эффектов глитча
+     */
+    resetGlitch() {
+        // Восстанавливаем позиции слоев
+        this.textLayers.forEach(layer => {
+            // Восстанавливаем позицию
+            if (layer.hasOwnProperty('oldX') && layer.hasOwnProperty('oldY')) {
+                this.scene.tweens.add({
+                    targets: layer,
+                    x: layer.oldX,
+                    y: layer.oldY,
+                    duration: 200,
+                    ease: 'Power1'
+                });
+                
+                delete layer.oldX;
+                delete layer.oldY;
+            }
+            
+            // Восстанавливаем цвет
+            if (layer.hasOwnProperty('oldTint')) {
+                layer.setTint(layer.oldTint);
+                delete layer.oldTint;
+            }
+            
+            // Восстанавливаем прозрачность
+            if (layer.hasOwnProperty('oldAlpha')) {
+                this.scene.tweens.add({
+                    targets: layer,
+                    alpha: layer.oldAlpha,
+                    duration: 200,
+                    ease: 'Power1'
+                });
+                delete layer.oldAlpha;
+            }
+            
+            // Восстанавливаем масштаб
+            if (layer.hasOwnProperty('oldScaleX') && layer.hasOwnProperty('oldScaleY')) {
+                this.scene.tweens.add({
+                    targets: layer,
+                    scaleX: layer.oldScaleX,
+                    scaleY: layer.oldScaleY,
+                    duration: 200,
+                    ease: 'Power1'
+                });
+                
+                delete layer.oldScaleX;
+                delete layer.oldScaleY;
+            }
+            
+            // Восстанавливаем вращение
+            if (layer.hasOwnProperty('oldRotation')) {
+                this.scene.tweens.add({
+                    targets: layer,
+                    rotation: layer.oldRotation,
+                    duration: 200,
+                    ease: 'Power1'
+                });
+                
+                delete layer.oldRotation;
+            }
+        });
+        
+        // Восстанавливаем позицию контейнера
+        this.scene.tweens.add({
+            targets: this.layersContainer,
+            x: 0,
+            y: 0,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 200,
+            ease: 'Power1'
+        });
+    }
+    
+    /**
      * Обновление анимации (вызывается каждый кадр)
      * @param {number} time - Текущее время
      * @param {number} delta - Время с последнего обновления
      */
     update(time, delta) {
-        // Обновляем матричные частицы
-        this.updateParticles(delta);
-        
         // Анимация дыхания для 3D-слоев (когда анимация завершена)
-        if (this.animationCompleted) {
+        if (this.animationCompleted && !this.isGlitching) {
             // Плавное вращение и покачивание логотипа
             const rotationX = Math.sin(time / 2000) * this.config.rotationAmplitude;
             const rotationY = Math.cos(time / 2500) * this.config.rotationAmplitude;
@@ -534,35 +846,6 @@ class LogoAnimation {
                 }
             });
         }
-    }
-    
-    /**
-     * Обновление матричных частиц
-     * @param {number} delta - Время с последнего обновления
-     */
-    updateParticles(delta) {
-        const textHeight = this.mainTextLayer ? this.mainTextLayer.height * 2 : 100;
-        
-        this.particles.forEach(particle => {
-            // Движение частицы вниз
-            particle.y += particle.speed * (delta / 16);
-            
-            // Если частица вышла за пределы, перемещаем её наверх
-            if (particle.y > textHeight / 2) {
-                particle.y = -textHeight / 2;
-                particle.x = Phaser.Math.Between(-this.mainTextLayer.width/2, this.mainTextLayer.width/2);
-                
-                // Меняем символ
-                if (Math.random() < 0.5) {
-                    particle.setText(this.textGenerator.getRandomChar());
-                }
-            }
-            
-            // С небольшой вероятностью меняем символ
-            if (Math.random() < 0.01) {
-                particle.setText(this.textGenerator.getRandomChar());
-            }
-        });
     }
     
     /**

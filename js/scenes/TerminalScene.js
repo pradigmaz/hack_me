@@ -53,25 +53,26 @@ class TerminalScene extends Phaser.Scene {
         
         // Создаем "стеклянный" терминал с эффектом стекломорфизма
         this.terminal = new Terminal(this, {
-            x: this.cameras.main.width / 2 - 400,
-            y: this.cameras.main.height / 2 - 300,
-            width: 800,
-            height: 600,
-            depth: 20, // Увеличиваем глубину для гарантированного перекрытия матрицы
-            fontSize: 16,
+            x: this.cameras.main.width / 2 - 575,
+            y: this.cameras.main.height / 2 - 425,
+            width: 1150,
+            height: 850,
+            depth: 20,
+            fontSize: 22,
+            lineHeight: 1.4,
             promptText: '[ГОСТЬ@СИСТЕМА]$ ',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)', // Полностью черный фон с прозрачностью для лучшего контраста
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
             borderColor: '#00FF41',
             textColor: '#00FF41',
-            useGlassmorphism: true // Включаем эффект стекломорфизма
+            useGlassmorphism: true
         });
         
         // Настраиваем зону исключения для матрицы вокруг терминала
         this.matrixEffect.setExclusionZone({
-            x: this.cameras.main.width / 2 - 430, // Чуть шире терминала
-            y: this.cameras.main.height / 2 - 330, // Чуть выше терминала
-            width: 860, // Чуть шире терминала
-            height: 660 // Чуть выше терминала
+            x: this.cameras.main.width / 2 - 605,
+            y: this.cameras.main.height / 2 - 455,
+            width: 1210,
+            height: 910
         });
         
         // Добавляем эффект подсветки терминала при нажатии клавиш
@@ -228,6 +229,20 @@ class TerminalScene extends Phaser.Scene {
             'Выйти из терминала',
             this.exitTerminal.bind(this)
         );
+        
+        // Добавляем команды настроек
+        this.terminal.registerCommand(
+            'options',
+            'Показать настройки игры',
+            this.commandOptions.bind(this)
+        );
+        
+        this.terminal.registerCommand(
+            'setopt',
+            'Изменить настройку',
+            this.commandSetOption.bind(this),
+            'setopt <настройка> <значение>'
+        );
     }
     
     /**
@@ -245,6 +260,8 @@ class TerminalScene extends Phaser.Scene {
             'hack - Запустить взлом системы',
             'decrypt - Расшифровать файл',
             'status - Показать статус системы',
+            'options - Показать настройки игры',
+            'setopt - Изменить настройку',
             'exit - Выйти из терминала'
         ];
         
@@ -948,6 +965,92 @@ class TerminalScene extends Phaser.Scene {
                 this.returnCallback();
             }
         });
+    }
+    
+    /**
+     * Команда options - показать настройки игры
+     */
+    commandOptions() {
+        const settings = this.game.globals.settings;
+        const optionsLines = [
+            'НАСТРОЙКИ:',
+            '',
+            `  Сложность: ${settings.difficulty}`,
+            `  Громкость звуков: ${settings.soundVolume * 100}%`,
+            `  Громкость музыки: ${settings.musicVolume * 100}%`,
+            `  Скорость терминала: ${settings.terminalSpeed}мс`,
+            '',
+            'Чтобы изменить настройку, используйте команду "setopt":',
+            '  setopt difficulty <easy|normal|hard>',
+            '  setopt soundVolume <0-100>',
+            '  setopt musicVolume <0-100>',
+            '  setopt terminalSpeed <10-50>'
+        ];
+        
+        this.terminal.writeOutput(optionsLines);
+    }
+    
+    /**
+     * Команда setopt - изменить настройку
+     * @param {string[]} args - Аргументы команды (имя_настройки, значение)
+     */
+    commandSetOption(args) {
+        if (args.length < 2) {
+            this.terminal.writeOutput('Ошибка: Недостаточно аргументов. Используйте "setopt <настройка> <значение>"');
+            return;
+        }
+        
+        const option = args[0].toLowerCase();
+        const value = args[1];
+        const settings = this.game.globals.settings;
+        
+        switch (option) {
+            case 'difficulty':
+                if (['easy', 'normal', 'hard'].includes(value)) {
+                    settings.difficulty = value;
+                    this.terminal.writeOutput(`Сложность установлена на: ${value}`);
+                } else {
+                    this.terminal.writeOutput('Ошибка: Допустимые значения сложности: easy, normal, hard');
+                }
+                break;
+                
+            case 'soundvolume':
+                const soundVol = parseInt(value);
+                if (!isNaN(soundVol) && soundVol >= 0 && soundVol <= 100) {
+                    settings.soundVolume = soundVol / 100;
+                    this.terminal.writeOutput(`Громкость звуков установлена на: ${soundVol}%`);
+                } else {
+                    this.terminal.writeOutput('Ошибка: Громкость должна быть числом от 0 до 100');
+                }
+                break;
+                
+            case 'musicvolume':
+                const musicVol = parseInt(value);
+                if (!isNaN(musicVol) && musicVol >= 0 && musicVol <= 100) {
+                    settings.musicVolume = musicVol / 100;
+                    this.terminal.writeOutput(`Громкость музыки установлена на: ${musicVol}%`);
+                } else {
+                    this.terminal.writeOutput('Ошибка: Громкость должна быть числом от 0 до 100');
+                }
+                break;
+                
+            case 'terminalspeed':
+                const speed = parseInt(value);
+                if (!isNaN(speed) && speed >= 10 && speed <= 50) {
+                    settings.terminalSpeed = speed;
+                    this.terminal.writeOutput(`Скорость терминала установлена на: ${speed}мс`);
+                } else {
+                    this.terminal.writeOutput('Ошибка: Скорость должна быть числом от 10 до 50');
+                }
+                break;
+                
+            default:
+                this.terminal.writeOutput(`Ошибка: Неизвестная настройка "${option}"`);
+                break;
+        }
+        
+        // Сохраняем настройки в локальное хранилище
+        localStorage.setItem('hacker_sim_settings', JSON.stringify(settings));
     }
     
     update() {

@@ -21,8 +21,8 @@ function initGame() {
     // Конфигурация игры (оставляем как есть)
     const config = {
         type: Phaser.AUTO,
-        width: 1200,
-        height: 800,
+        width: 1400,
+        height: 900,
         parent: 'game-container',
         backgroundColor: '#000000',
         scene: [
