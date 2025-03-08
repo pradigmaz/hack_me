@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>h4ck/me</title>
     
+    <!-- Yandex Games SDK -->
+    <script async src="/sdk.js" onload="initSDK()"></script>
+    <script>
+        function initSDK() {
+            console.log('SDK script loaded');
+            // Реальная инициализация будет выполнена из BootScene
+        }
+    </script>
+    
     <!-- Стили -->
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/terminal.css">
@@ -33,6 +42,7 @@
     <script src="js/utils/MatrixEnhancer.js"></script>
     <script src="js/utils/i18n.js"></script>
     <script src="js/utils/LogoAnimation.js"></script>
+    <script src="js/utils/YandexSDK.js"></script>
     
     <!-- Объекты -->
     <script src="js/objects/MatrixEffect.js"></script>

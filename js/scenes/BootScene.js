@@ -21,6 +21,17 @@ class BootScene extends Phaser.Scene {
         );
         loadingText.setOrigin(0.5);
         
+        // Инициализация SDK Яндекс Игр
+        if (window.yandexSDK) {
+            window.yandexSDK.init()
+                .then(() => {
+                    console.log('Yandex SDK ready in BootScene');
+                })
+                .catch(err => {
+                    console.warn('Running without Yandex SDK:', err);
+                });
+        }
+        
         // Прогресс-бар загрузки
         const progressBox = this.add.graphics();
         const progressBar = this.add.graphics();
@@ -239,6 +250,15 @@ class BootScene extends Phaser.Scene {
                 currentLevel: null,
                 discoveredSystems: [],
                 activeHacks: []
+            };
+        }
+        
+        // Инициализация объекта для хранения данных SDK Яндекс Игр
+        if (!this.game.globals.yandexSDK) {
+            this.game.globals.yandexSDK = {
+                initialized: false,
+                leaderboards: {},
+                playerData: null
             };
         }
     }
