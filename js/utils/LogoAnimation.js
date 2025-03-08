@@ -111,6 +111,9 @@ class LogoAnimation {
             const symbol = this.textSymbols[this.currentChar];
             const textObj = symbol.obj;
             
+            // Сохраняем текущий индекс символа для использования в колбэке
+            const currentIndex = this.currentChar;
+            
             // Анимация появления символа
             this.scene.tweens.add({
                 targets: textObj,
@@ -123,8 +126,8 @@ class LogoAnimation {
                 onComplete: () => {
                     textObj.setScale(1);
                     
-                    // Запускаем анимацию смены символов
-                    this.startSymbolAnimation(this.currentChar);
+                    // Запускаем анимацию смены символов с сохраненным индексом
+                    this.startSymbolAnimation(currentIndex);
                 }
             });
             
@@ -150,13 +153,33 @@ class LogoAnimation {
      * @param {number} index - Индекс символа
      */
     startSymbolAnimation(index) {
+        // Проверяем валидность индекса и наличие символа
+        if (index < 0 || index >= this.textSymbols.length || !this.textSymbols[index]) {
+            console.warn(`LogoAnimation: Invalid symbol index: ${index}`);
+            return;
+        }
+        
         const symbol = this.textSymbols[index];
+        
+        // Дополнительная проверка на существование свойства obj
+        if (!symbol.obj) {
+            console.warn(`LogoAnimation: Missing obj property for symbol at index ${index}`);
+            return;
+        }
+        
         const textObj = symbol.obj;
         
         // Создаем таймер для смены символов
         const symbolTimer = this.scene.time.addEvent({
             delay: this.config.symbolSpeed,
             callback: () => {
+                // Дополнительная проверка на существование символа при каждом вызове таймера
+                if (!this.textSymbols[index] || !this.textSymbols[index].obj) {
+                    console.warn(`LogoAnimation: Symbol no longer exists at index ${index}`);
+                    symbolTimer.remove();
+                    return;
+                }
+                
                 // Увеличиваем счетчик смен
                 symbol.charChangeCounter++;
                 
