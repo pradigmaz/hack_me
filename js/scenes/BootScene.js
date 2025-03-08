@@ -181,13 +181,6 @@ class BootScene extends Phaser.Scene {
                 
                 let language = this.game.globals.settings.language || 'ru';
                 
-                if (this.game.globals.yandexSDK && this.game.globals.yandexSDK.initialized) {
-                    const sdkLang = this.game.globals.yandexSDK.getLanguage();
-                    if (sdkLang) {
-                        language = this.game.globals.i18n.detectLanguage(sdkLang);
-                    }
-                }
-                
                 this.game.globals.i18n.setLanguage(language);
                 this.game.globals.settings.language = language;
                 this.game.globals.languagesLoaded = true;
@@ -201,9 +194,11 @@ class BootScene extends Phaser.Scene {
      * Переход к следующей сцене
      */
     goToNextScene() {
-        const nextScene = (this.game.globals.yandexSDK && 
-                          this.game.globals.yandexSDK.getLanguage()) ? 
-                          'MenuScene' : 'LanguageScene';
+        // Проверяем, есть ли сохраненные настройки языка
+        const savedLanguage = localStorage.getItem('hacker_sim_language');
+        // Если язык уже выбран пользователем, идем в главное меню
+        // иначе показываем экран выбора языка
+        const nextScene = savedLanguage ? 'MenuScene' : 'LanguageScene';
         
         this.scene.start(nextScene);
     }

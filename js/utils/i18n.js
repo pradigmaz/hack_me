@@ -1,6 +1,6 @@
 /**
  * i18n - система локализации для игры
- * Поддерживает все языки из Яндекс Игр
+ * Поддерживает множество языков
  */
 class I18n {
     /**
@@ -13,13 +13,13 @@ class I18n {
         // Словари переводов
         this.dictionaries = {};
         
-        // Карта резервных языков согласно требованиям Яндекс Игр
+        // Карта резервных языков
         this.fallbackMap = {
             'be': 'ru', 'kk': 'ru', 'uk': 'ru', 'uz': 'ru'
             // Для остальных языков используется английский
         };
         
-        // Приоритетные языки (рекомендованные Яндекс Играми)
+        // Приоритетные языки
         this.priorityLanguages = ['ru', 'tr', 'en'];
         
         // Поддерживаемые языки
@@ -93,23 +93,23 @@ class I18n {
     }
     
     /**
-     * Определение языка на основе Яндекс SDK
-     * @param {string} sdkLang - Язык из SDK
+     * Определение языка на основе кода языка
+     * @param {string} langCode - Код языка
      * @returns {string} - Определенный язык
      */
-    detectLanguage(sdkLang) {
+    detectLanguage(langCode) {
         // Если язык не поддерживается, используем карту резервных языков
-        if (!this.isLanguageSupported(sdkLang)) {
+        if (!this.isLanguageSupported(langCode)) {
             // Если есть в карте резервных
-            if (this.fallbackMap[sdkLang]) {
-                return this.fallbackMap[sdkLang];
+            if (this.fallbackMap[langCode]) {
+                return this.fallbackMap[langCode];
             }
             
             // По умолчанию английский
             return 'en';
         }
         
-        return sdkLang;
+        return langCode;
     }
     
     /**

@@ -1,6 +1,5 @@
 /**
  * Модификации в main.js
- * Добавление инициализации системы локализации и Яндекс SDK
  */
 
 // Объявляем глобальные переменные (оставляем как есть)
@@ -8,38 +7,15 @@ let matrixEnhancer = null;
 
 // Ждем, пока документ полностью загрузится
 window.addEventListener('load', function() {
-    // Инициализация Яндекс SDK
-    initYandexSDK().then(initGame);
+    // Инициализация игры напрямую, без Яндекс SDK
+    initGame();
 });
 
 /**
- * Инициализация Яндекс SDK
- * @returns {Promise} - Промис, разрешающийся после инициализации
- */
-function initYandexSDK() {
-    return new Promise((resolve) => {
-        // Создаем экземпляр YandexSDK
-        const yandexSDK = new YandexSDK();
-        
-        // Пытаемся инициализировать SDK
-        yandexSDK.init()
-            .then(() => {
-                console.log('Yandex SDK initialized, language:', yandexSDK.getLanguage());
-                resolve(yandexSDK);
-            })
-            .catch(() => {
-                console.log('Yandex SDK not available or initialization failed. Running in standalone mode.');
-                resolve(null);
-            });
-    });
-}
-
-/**
  * Инициализация игры
- * @param {YandexSDK|null} yandexSDK - Инициализированный SDK или null
  */
-function initGame(yandexSDK) {
-    // Сначала инициализируем систему локализации
+function initGame() {
+    // Инициализируем систему локализации
     const i18n = new I18n();
     
     // Конфигурация игры (оставляем как есть)
@@ -99,20 +75,17 @@ function initGame(yandexSDK) {
             activeHacks: []
         },
         // Система локализации
-        i18n: i18n,
-        // Яндекс SDK
-        yandexSDK: yandexSDK
+        i18n: i18n
     };
 
     // Инициализируем систему локализации
-    i18n.init(yandexSDK ? i18n.detectLanguage(yandexSDK.getLanguage()) : 'ru');
+    // Пытаемся загрузить сохраненный язык из локального хранилища
+    const savedLanguage = localStorage.getItem('hacker_sim_language');
+    const defaultLanguage = savedLanguage || 'ru';
     
-    // Если SDK инициализирован, устанавливаем язык из SDK
-    if (yandexSDK && yandexSDK.getLanguage()) {
-        const detectedLang = i18n.detectLanguage(yandexSDK.getLanguage());
-        game.globals.settings.language = detectedLang;
-        i18n.setLanguage(detectedLang);
-    }
+    i18n.init(defaultLanguage);
+    game.globals.settings.language = defaultLanguage;
+    i18n.setLanguage(defaultLanguage);
 
     // Обработка изменения размера окна
     window.addEventListener('resize', function() {
