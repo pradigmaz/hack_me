@@ -1,0 +1,312 @@
+/* Стили для матричного эффекта */
+
+.matrix-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.98); /* Более темный фон для лучшего контраста */
+}
+
+.matrix-symbol {
+    position: absolute;
+    animation: matrix-fall linear infinite;
+    color: #00FF41; /* Яркий зеленый цвет как в оригинальной Матрице */
+    text-shadow: 0 0 8px rgba(0, 255, 65, 0.7); /* Мягкое свечение */
+    opacity: 0.9;
+    font-family: 'Courier New', monospace;
+    font-size: 24px; /* Увеличенный размер символов */
+    font-weight: bold; /* Делаем символы жирными для лучшей видимости */
+    letter-spacing: 1px; /* Небольшое расстояние между символами */
+    transition: color 0.3s, text-shadow 0.3s, transform 0.3s;
+}
+
+.matrix-symbol.highlight {
+    color: #5FFF5F; /* Яркий светло-зеленый цвет для выделенных символов */
+    text-shadow: 
+        0 0 15px #5FFF5F, 
+        0 0 25px #5FFF5F, 
+        0 0 35px rgba(95, 255, 95, 0.8); /* Мощное свечение */
+    opacity: 1;
+    transform: scale(1.2); /* Увеличиваем выделенные символы */
+    font-weight: bold;
+}
+
+.matrix-symbol.dim {
+    color: #0A4A4C;
+    opacity: 0.5;
+    text-shadow: none;
+}
+
+.matrix-symbol.glitch {
+    animation: glitch-effect 0.08s steps(2) infinite; /* Делаем глитч более резким */
+    color: rgba(0, 255, 255, 0.9);
+    text-shadow: 
+        5px 0 0 rgba(255, 0, 255, 0.7), 
+        -5px -2px 0 rgba(0, 255, 255, 0.7),
+        2px 3px 0 rgba(0, 255, 0, 0.7); /* Усиливаем эффект хроматической аберрации */
+    transform: skewX(3deg); /* Добавляем перекос */
+    letter-spacing: -2px; /* Сжимаем символы для эффекта сбоя */
+}
+
+.matrix-symbol.binary {
+    color: #45FFFF;
+    font-weight: bold;
+    font-size: 24px; /* Увеличиваем размер бинарных символов */
+    letter-spacing: 4px; /* Больше разрежение для бинарных символов */
+}
+
+.matrix-symbol.japanese {
+    color: #00FF41; /* Оригинальный зеленый для японских символов */
+    letter-spacing: 2px; /* Интервал для японских символов */
+    font-size: 26px; /* Увеличенный размер для японских символов */
+}
+
+/* Анимация падения символов с вариациями для разнообразия */
+@keyframes matrix-fall {
+    0% {
+        transform: translateY(-120%) scale(0.9);
+        opacity: 0;
+    }
+    5% {
+        opacity: 0.9;
+        transform: translateY(-100%) scale(1);
+    }
+    95% {
+        opacity: 0.8;
+    }
+    100% {
+        transform: translateY(130vh) scale(0.95);
+        opacity: 0;
+    }
+}
+
+/* Вариации скорости падения - более аутентичные скорости */
+.matrix-symbol.speed-1 { animation-duration: 10s; }
+.matrix-symbol.speed-2 { animation-duration: 8s; }
+.matrix-symbol.speed-3 { animation-duration: 7s; }
+.matrix-symbol.speed-4 { animation-duration: 5s; }
+.matrix-symbol.speed-5 { animation-duration: 4s; }
+
+/* Улучшенный эффект глитча */
+@keyframes glitch-effect {
+    0% {
+        transform: translate(5px, 0) skewX(10deg);
+        color: #FF00FF;
+        text-shadow: 
+            -3px 0 0 rgba(0, 255, 255, 0.7),
+            3px 0 0 rgba(255, 0, 0, 0.7);
+        letter-spacing: -3px;
+    }
+    25% {
+        transform: translate(-5px, 2px) skewX(-5deg);
+        color: #00FFFF;
+        text-shadow: 
+            3px 0 0 rgba(255, 0, 255, 0.7),
+            -3px 0 0 rgba(0, 255, 0, 0.7);
+        letter-spacing: 2px;
+    }
+    50% {
+        transform: translate(0, -3px) skewY(5deg);
+        color: #FF0000;
+        text-shadow: 
+            4px 0 0 rgba(0, 255, 0, 0.7),
+            -4px 0 0 rgba(0, 0, 255, 0.7);
+        letter-spacing: -2px;
+    }
+    75% {
+        transform: translate(3px, -1px) skewX(15deg);
+        color: #00FF00;
+        text-shadow: 
+            -5px 0 0 rgba(255, 0, 0, 0.7),
+            5px 0 0 rgba(0, 0, 255, 0.7);
+        letter-spacing: 3px;
+    }
+    100% {
+        transform: translate(-3px, 1px) skewY(-5deg);
+        color: #FFFFFF;
+        text-shadow: 
+            6px 0 0 rgba(255, 255, 0, 0.7),
+            -6px 0 0 rgba(0, 255, 255, 0.7);
+        letter-spacing: -1px;
+    }
+}
+
+/* Усиленный эффект пульсации */
+@keyframes pulse {
+    0% { opacity: 0.3; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0.3; transform: scale(0.95); }
+}
+
+.matrix-symbol.pulse {
+    animation: matrix-fall linear infinite, pulse 1.5s infinite;
+}
+
+/* Улучшенный эффект волны при клике */
+.matrix-wave {
+    position: absolute;
+    border-radius: 50%;
+    border: 3px solid #00FF41;
+    box-shadow: 
+        0 0 15px #00FF41, 
+        0 0 25px rgba(0, 255, 65, 0.5), 
+        inset 0 0 10px #00FF41;
+    animation: wave-expand 1.2s cubic-bezier(0.1, 0.9, 0.2, 1) forwards; /* Улучшенная анимация */
+    opacity: 0.8;
+    z-index: 1;
+    pointer-events: none;
+}
+
+@keyframes wave-expand {
+    0% {
+        transform: scale(0);
+        opacity: 0.8;
+        border-width: 5px;
+    }
+    70% {
+        opacity: 0.5;
+        border-width: 3px;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+        border-width: 1px;
+    }
+}
+
+/* Улучшенный эффект свечения для выделенных символов */
+.matrix-symbol.glow {
+    text-shadow: 
+        0 0 5px currentColor,
+        0 0 10px currentColor,
+        0 0 15px currentColor,
+        0 0 20px currentColor,
+        0 0 30px rgba(255, 255, 255, 0.5);
+    animation: glow 1.5s infinite alternate;
+}
+
+@keyframes glow {
+    from { 
+        text-shadow: 
+            0 0 5px currentColor, 
+            0 0 10px currentColor; 
+        transform: scale(1);
+    }
+    to { 
+        text-shadow: 
+            0 0 10px currentColor, 
+            0 0 20px currentColor, 
+            0 0 30px rgba(255, 255, 255, 0.5),
+            0 0 40px rgba(255, 255, 255, 0.3); 
+        transform: scale(1.1);
+    }
+}
+
+/* Улучшенный эффект глобального глитча */
+.global-glitch {
+    animation: global-glitch 0.2s infinite;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+    background: linear-gradient(
+        45deg, 
+        rgba(255, 0, 255, 0.05), 
+        rgba(0, 255, 255, 0.05), 
+        rgba(0, 255, 0, 0.05)
+    );
+    mix-blend-mode: overlay;
+    background-size: 400% 400%;
+}
+
+@keyframes global-glitch {
+    0% { opacity: 0; filter: hue-rotate(0deg); }
+    10% { opacity: 0.2; transform: translate(8px, 0) skewX(5deg); filter: hue-rotate(90deg); }
+    20% { opacity: 0; }
+    30% { opacity: 0.2; transform: translate(-8px, 0) skewX(-5deg); filter: hue-rotate(180deg); }
+    40% { opacity: 0; }
+    50% { opacity: 0.2; transform: translate(0, -8px) skewY(5deg); filter: hue-rotate(270deg); }
+    60% { opacity: 0; }
+    70% { opacity: 0.2; transform: translate(0, 8px) skewY(-5deg); filter: hue-rotate(0deg); }
+    80% { opacity: 0; }
+    90% { opacity: 0.2; transform: translate(-4px, -4px) scale(1.05); filter: hue-rotate(90deg); }
+    100% { opacity: 0; }
+}
+
+/* Эффект цифрового дождя через фильтры */
+.matrix-rain-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8"><rect width="8" height="1" fill="rgba(0,255,65,0.03)" /></svg>');
+    background-size: 8px 16px; /* Увеличенный размер для более выраженного эффекта */
+    opacity: 0.6; /* Увеличиваем заметность эффекта */
+    pointer-events: none;
+    animation: rain-move 20s linear infinite;
+    z-index: 900;
+}
+
+@keyframes rain-move {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100%; }
+}
+
+/* Сканирующая линия для эффекта ретро-экрана */
+.matrix-scanline {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 255, 65, 0), 
+        rgba(0, 255, 65, 0.5), 
+        rgba(0, 255, 65, 0)
+    );
+    animation: scanline 4s linear infinite;
+    opacity: 0.8; /* Увеличиваем заметность эффекта */
+    pointer-events: none;
+    z-index: 950;
+}
+
+@keyframes scanline {
+    0% { top: -10px; }
+    100% { top: 100vh; }
+}
+
+/* Эффект блика на экране - отключен по просьбе пользователя */
+.matrix-flare {
+    position: fixed;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle,
+        rgba(0, 255, 65, 0.7), 
+        rgba(0, 255, 65, 0.3), 
+        rgba(0, 255, 65, 0)
+    );
+    filter: blur(5px);
+    animation: flare-move 10s ease-in-out infinite alternate;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    z-index: 950;
+    opacity: 0; /* Полностью скрываем блик */
+    display: none; /* Дополнительно скрываем элемент из потока DOM */
+}
+
+@keyframes flare-move {
+    0% { transform: translate(10%, 10%) scale(1); }
+    50% { transform: translate(90%, 60%) scale(1.5); }
+    100% { transform: translate(20%, 80%) scale(1); }
+}

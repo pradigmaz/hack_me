@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цифровое проникновение - симулятор хакера</title>
+    
+    <!-- Стили -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/terminal.css">
+    <link rel="stylesheet" href="css/matrix.css">
+    
+    <!-- Yandex Games SDK -->
+    <script src="/sdk.js"></script>
+    
+    <!-- Phaser -->
+    <script src="lib/phaser.min.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Добавляем элементы для улучшения матричного эффекта -->
+        <div class="matrix-rain-overlay"></div>
+        <div class="matrix-scanline"></div>
+        <div class="matrix-flare"></div>
+    </div>
+    
+    <!-- Языковые файлы -->
+    <script src="assets/i18n/ru.js"></script>
+    <script src="assets/i18n/en.js"></script>
+    <script src="assets/i18n/tr.js"></script>
+    
+    <!-- Основные скрипты -->
+    <script src="js/utils/TextGenerator.js"></script>
+    <script src="js/utils/Glitch.js"></script>
+    <script src="js/utils/LevelGenerator.js"></script>
+    <script src="js/utils/MatrixEnhancer.js"></script>
+    <script src="js/utils/i18n.js"></script>
+    <script src="js/utils/YandexSDK.js"></script>
+    <script src="js/utils/LogoAnimation.js"></script>
+    
+    <!-- Объекты -->
+    <script src="js/objects/MatrixEffect.js"></script>
+    <script src="js/objects/Terminal.js"></script>
+    <script src="js/objects/Player.js"></script>
+    <script src="js/objects/Firewall.js"></script>
+    <script src="js/objects/DataPacket.js"></script>
+    
+    <!-- Мини-игры -->
+    <script src="js/minigames/PasswordCrack.js"></script>
+    <script src="js/minigames/NetworkTrace.js"></script>
+    <script src="js/minigames/CodeInjection.js"></script>
+    
+    <!-- Сцены -->
+    <script src="js/scenes/BootScene.js"></script>
+    <script src="js/scenes/LanguageScene.js"></script>
+    <script src="js/scenes/MenuScene.js"></script>
+    <script src="js/scenes/GameScene.js"></script>
+    <script src="js/scenes/HackingScene.js"></script>
+    <script src="js/scenes/TerminalScene.js"></script>
+    
+    <!-- Основной скрипт -->
+    <script src="js/main.js"></script>
+</body>
+</html>
