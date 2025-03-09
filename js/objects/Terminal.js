@@ -28,7 +28,8 @@ class Terminal {
             typingSpeed: config.typingSpeed || scene.game.globals?.settings?.terminalSpeed || 20,
             maxLines: config.maxLines || 100,
             depth: config.depth || 10,
-            useGlassmorphism: config.useGlassmorphism !== undefined ? config.useGlassmorphism : true // Включен ли эффект стекломорфизма
+            useGlassmorphism: config.useGlassmorphism !== undefined ? config.useGlassmorphism : true, // Включен ли эффект стекломорфизма
+            scrollAnimationSpeed: config.scrollAnimationSpeed || 200 // Скорость анимации прокрутки
         };
         
         // Контейнер для всех элементов терминала
@@ -246,11 +247,17 @@ class Terminal {
         
         // Состояние терминала
         this.state = {
-            active: true,  // Активен ли терминал для ввода
-            animating: false,  // Находится ли в процессе анимации вывода
-            lines: [],  // Строки вывода
-            history: [],  // История команд
-            commands: {}  // Словарь зарегистрированных команд
+            active: true,
+            visible: true,
+            cursorVisible: true,
+            lines: [],
+            commands: {},
+            history: [],
+            historyIndex: -1,
+            userInput: '',
+            animating: false,
+            scrollAnimating: false, // Флаг анимации прокрутки
+            lastScrollTime: 0 // Время последней прокрутки
         };
         
         // Обработка ввода с клавиатуры
@@ -464,8 +471,15 @@ class Terminal {
                     lineCharIndex = 0;
                 }
                 
-                // Прокрутка вниз при необходимости
-                this.scrollOutputToBottom();
+                // Прокрутка вниз при необходимости, но не каждый символ
+                // Вызываем прокрутку только в начале строки, в конце строки
+                // или через определенные интервалы для снижения "рваности"
+                const now = Date.now();
+                if (lineCharIndex === 0 || lineCharIndex === line.length - 1 || 
+                    now - this.state.lastScrollTime > 500) {
+                    this.scrollOutputToBottom(true);
+                    this.state.lastScrollTime = now;
+                }
                 
                 // Продолжаем анимацию
                 if (currentLine < lines.length || lineCharIndex < (lines[currentLine] ? lines[currentLine].length : 0)) {
@@ -473,6 +487,9 @@ class Terminal {
                 } else {
                     // Анимация завершена
                     this.state.animating = false;
+                    
+                    // Финальная прокрутка в конце вывода
+                    this.scrollOutputToBottom(true);
                     
                     // Вызываем callback, если он есть
                     if (outputOptions.callback) {
@@ -496,13 +513,18 @@ class Terminal {
      * Прокрутка текста вывода до конца
      * Улучшенная версия с контролем высоты контейнера и поддержкой пользовательской прокрутки
      */
-    scrollOutputToBottom() {
+    scrollOutputToBottom(animate = true) {
+        // Если уже идет анимация прокрутки, не запускаем новую
+        if (this.state.scrollAnimating) {
+            return;
+        }
+        
         // Получаем текущие строки
         const lines = this.outputText.text.split('\n');
         
         // Определяем максимальную высоту области вывода с учетом нового размера шрифта
         // Увеличиваем отступ снизу, чтобы текст не наезжал на строку ввода
-        const maxHeight = this.config.height - this.config.padding * 3 - this.headerText.height - this.inputContainer.height - 60;
+        const maxHeight = this.config.height - this.config.padding * 3 - this.headerText.height - this.inputContainer.height - 100;
         
         // Определяем приблизительную высоту текста
         const lineHeight = this.config.fontSize * this.config.lineHeight; // Учитываем межстрочное расстояние
@@ -514,17 +536,52 @@ class Terminal {
             const visibleLines = Math.floor(maxHeight / lineHeight);
             
             // Определяем, сколько строк нужно удалить
-            const linesToRemove = lines.length - visibleLines + 1; // Добавляем 1 для лучшей видимости последних строк
+            const linesToRemove = lines.length - visibleLines + 3; // Добавляем 3 для лучшей видимости последних строк
             
             if (linesToRemove > 0) {
-                // Обрезаем старые строки, оставляя только видимые
-                this.outputText.setText(lines.slice(linesToRemove).join('\n'));
+                if (animate && this.scene) {
+                    // Сохраняем текущую Y-позицию
+                    const currentY = this.outputText.y;
+                    
+                    // Устанавливаем флаг анимации
+                    this.state.scrollAnimating = true;
+                    
+                    // Создаем анимацию движения текста вверх
+                    this.scene.tweens.add({
+                        targets: this.outputText,
+                        y: currentY - lineHeight * linesToRemove * 0.5, // Двигаем вверх на половину удаляемой высоты
+                        duration: this.config.scrollAnimationSpeed / 2,
+                        ease: 'Power1',
+                        onComplete: () => {
+                            // Обрезаем старые строки
+                            this.outputText.setText(lines.slice(linesToRemove).join('\n'));
+                            
+                            // Устанавливаем правильную позицию Y для текста вывода
+                            const outputY = this.config.padding + this.headerText.height + 10;
+                            this.outputText.setY(outputY);
+                            
+                            // Завершаем анимацию
+                            this.state.scrollAnimating = false;
+                        }
+                    });
+                } else {
+                    // Обрезаем старые строки мгновенно, если анимация отключена
+                    this.outputText.setText(lines.slice(linesToRemove).join('\n'));
+                    
+                    // Устанавливаем правильную позицию Y для текста вывода
+                    const outputY = this.config.padding + this.headerText.height + 10;
+                    this.outputText.setY(outputY);
+                }
+            } else {
+                // Устанавливаем правильную позицию Y для текста вывода
+                const outputY = this.config.padding + this.headerText.height + 10;
+                this.outputText.setY(outputY);
             }
+        } else {
+            // Устанавливаем правильную позицию Y для текста вывода
+            const outputY = this.config.padding + this.headerText.height + 10;
+            this.outputText.setY(outputY);
         }
-        
-        // Устанавливаем правильную позицию Y для текста вывода
-        const outputY = this.config.padding + this.headerText.height + 10;
-        this.outputText.setY(outputY);
         
         // Сбрасываем позицию прокрутки на нижний край
         this.contentScrollPosition = 0;
