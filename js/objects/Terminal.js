@@ -162,7 +162,7 @@ class Terminal {
             fontFamily: this.config.fontFamily,
             fontSize: this.config.fontSize,
             color: this.config.textColor,
-            wordWrap: { width: this.config.width - this.config.padding * 2 },
+            wordWrap: false,
             lineSpacing: (this.config.lineHeight - 1) * this.config.fontSize // Добавлен межстрочный интервал
         });
         this.contentContainer.add(this.outputText);
@@ -411,9 +411,21 @@ class Terminal {
             callback: options.callback || null
         };
         
+        // Рассчитываем эффективную ширину текстового поля в символах
+        // Используем чуть меньшую ширину для надежности
+        const effectiveWidth = Math.floor((this.config.width - this.config.padding * 4) / (this.config.fontSize * 0.5));
+        
+        // Обрабатываем каждую строку, разбивая длинные строки
+        const processedLines = [];
+        for (const line of lines) {
+            // Разбиваем длинные строки
+            const splitLines = this.splitLongLines(line, effectiveWidth);
+            processedLines.push(...splitLines);
+        }
+        
         // Если уже идет анимация, добавляем новые строки в очередь
         if (this.state.animating && !outputOptions.instant) {
-            this.state.lines = this.state.lines.concat(lines.map(line => ({
+            this.state.lines = this.state.lines.concat(processedLines.map(line => ({
                 text: line,
                 options: outputOptions
             })));
@@ -427,7 +439,7 @@ class Terminal {
         if (outputOptions.instant) {
             // Добавляем все строки сразу
             const currentText = this.outputText.text;
-            const newText = currentText + (currentText ? '\n' : '') + lines.join('\n');
+            const newText = currentText + (currentText ? '\n' : '') + processedLines.join('\n');
             this.outputText.setText(newText);
             this.outputText.setColor(outputOptions.color);
             
@@ -446,9 +458,9 @@ class Terminal {
         let lineCharIndex = 0;
         const originalText = this.outputText.text;
         const addCharacter = () => {
-            if (currentLine < lines.length) {
+            if (currentLine < processedLines.length) {
                 // Текущая строка
-                const line = lines[currentLine];
+                const line = processedLines[currentLine];
                 
                 // Добавляем символ
                 if (lineCharIndex === 0) {
@@ -471,25 +483,15 @@ class Terminal {
                     lineCharIndex = 0;
                 }
                 
-                // Прокрутка вниз при необходимости, но не каждый символ
-                // Вызываем прокрутку только в начале строки, в конце строки
-                // или через определенные интервалы для снижения "рваности"
-                const now = Date.now();
-                if (lineCharIndex === 0 || lineCharIndex === line.length - 1 || 
-                    now - this.state.lastScrollTime > 500) {
-                    this.scrollOutputToBottom(true);
-                    this.state.lastScrollTime = now;
-                }
+                // Прокрутка вниз при необходимости
+                this.scrollOutputToBottom();
                 
                 // Продолжаем анимацию
-                if (currentLine < lines.length || lineCharIndex < (lines[currentLine] ? lines[currentLine].length : 0)) {
+                if (currentLine < processedLines.length || lineCharIndex < (processedLines[currentLine] ? processedLines[currentLine].length : 0)) {
                     this.scene.time.delayedCall(outputOptions.speed, addCharacter);
                 } else {
                     // Анимация завершена
                     this.state.animating = false;
-                    
-                    // Финальная прокрутка в конце вывода
-                    this.scrollOutputToBottom(true);
                     
                     // Вызываем callback, если он есть
                     if (outputOptions.callback) {
@@ -524,7 +526,7 @@ class Terminal {
         
         // Определяем максимальную высоту области вывода с учетом нового размера шрифта
         // Увеличиваем отступ снизу, чтобы текст не наезжал на строку ввода
-        const maxHeight = this.config.height - this.config.padding * 3 - this.headerText.height - this.inputContainer.height - 100;
+        const maxHeight = this.config.height - this.config.padding * 3 - this.headerText.height - this.inputContainer.height - 80; // Увеличиваем запас с 100 до 80
         
         // Определяем приблизительную высоту текста
         const lineHeight = this.config.fontSize * this.config.lineHeight; // Учитываем межстрочное расстояние
@@ -536,7 +538,7 @@ class Terminal {
             const visibleLines = Math.floor(maxHeight / lineHeight);
             
             // Определяем, сколько строк нужно удалить
-            const linesToRemove = lines.length - visibleLines + 3; // Добавляем 3 для лучшей видимости последних строк
+            const linesToRemove = lines.length - visibleLines + 2; // Уменьшаем запас с 3 до 2 для лучшей видимости последних строк
             
             if (linesToRemove > 0) {
                 if (animate && this.scene) {
@@ -675,6 +677,59 @@ class Terminal {
                x <= bounds.x + bounds.width && 
                y >= bounds.y && 
                y <= bounds.y + bounds.height;
+    }
+    
+    /**
+     * Разбивает длинные строки на части подходящей длины
+     * @param {string} text - Исходный текст
+     * @param {number} maxWidth - Максимальная ширина строки в символах
+     * @returns {string[]} - Массив строк подходящей длины
+     */
+    splitLongLines(text, maxWidth) {
+        // Проверяем, является ли text строкой
+        if (typeof text !== 'string') return [text];
+        
+        // Если текст короче максимальной ширины, возвращаем как есть
+        if (text.length <= maxWidth) return [text];
+        
+        const lines = [];
+        let currentLine = '';
+        
+        // Разбиваем текст на слова
+        const words = text.split(' ');
+        
+        for (const word of words) {
+            // Если слово само по себе слишком длинное, разбиваем его
+            if (word.length > maxWidth) {
+                // Сначала добавляем текущую строку, если она не пуста
+                if (currentLine) {
+                    lines.push(currentLine);
+                    currentLine = '';
+                }
+                
+                // Разбиваем длинное слово на части
+                for (let i = 0; i < word.length; i += maxWidth) {
+                    const part = word.substring(i, i + maxWidth);
+                    lines.push(part);
+                }
+            }
+            // Если текущая строка + слово не превышают максимум
+            else if (currentLine.length + word.length + (currentLine ? 1 : 0) <= maxWidth) {
+                currentLine += (currentLine ? ' ' : '') + word;
+            }
+            // Если превышает - сохраняем текущую строку и начинаем новую
+            else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        
+        // Добавляем последнюю строку, если она не пуста
+        if (currentLine) {
+            lines.push(currentLine);
+        }
+        
+        return lines;
     }
     
     /**
